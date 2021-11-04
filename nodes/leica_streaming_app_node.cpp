@@ -11,12 +11,12 @@ int main(int argc, char **argv) {
   int port = 5001;
   */
 
-  ros::init(argc, argv, "leica_streaming_app_serial_node");
+  ros::init(argc, argv, "leica_streaming_app_node");
   nodelet::Loader nodelet;
   nodelet::M_string remap(ros::names::getRemappings());
   nodelet::V_string nargv;
   std::string nodelet_name = ros::this_node::getName();
-  nodelet.load(nodelet_name, "leica_streaming_app/leica_streaming_app_serial_nodelet", remap, nargv);
+  nodelet.load(nodelet_name, "leica_streaming_app/leica_streaming_app_nodelet", remap, nargv);
   ros::spin();
 
   /*
