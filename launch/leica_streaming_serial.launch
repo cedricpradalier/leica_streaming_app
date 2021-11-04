@@ -1,0 +1,10 @@
+<launch>
+
+  <node pkg="leica_streaming_app" type="leica_streaming_app_serial_node" name="leica" output="screen">
+      <param name="connection" value="serial" />
+      <param name="base_frame" value="base_link" />
+      <param name="point_frame" value="point_link" />
+      <param name="publish_tf" value="true" />
+      <param name="comport" value="/dev/ttyUSB0" />
+  </node>
+</launch>
