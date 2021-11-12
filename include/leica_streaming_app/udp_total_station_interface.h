@@ -63,7 +63,8 @@ class UDPTSInterface: public TSInterface {
   std::string sensor_host;
   int sensor_port;
   static boost::asio::io_service io_service;
-
+  std::unique_ptr<boost::asio::ip::udp::socket> socket_;  /**< Socket */
+  boost::asio::ip::udp::endpoint receiver_endpoint;
   std::thread* receiveThread;
 
 };

@@ -52,10 +52,17 @@ void UDPTSInterface::connect(std::string ip, int port) {
 
     receiveThread = new std::thread(&UDPTSInterface::recv_thread,this);
 
+    udp::resolver resolver(io_service);
+    char sensor_port_cstr[128];
+    sprintf(sensor_port_cstr,"%d",port);
+    udp::resolver::query query(udp::v4(), sensor_host,std::string(sensor_port_cstr));
+    receiver_endpoint = *resolver.resolve(query);
+    socket_.reset(new udp::socket(io_service));
+    socket_->open(udp::v4());
 }
 
 void UDPTSInterface::write(std::vector<char> str) {
-    ROS_ERROR("Write command ignored");
+    socket_->send_to(boost::asio::buffer(str), receiver_endpoint);
 }
 
 void UDPTSInterface::readHandler(const std::string & data) {
