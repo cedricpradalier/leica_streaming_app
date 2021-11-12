@@ -37,10 +37,11 @@ namespace leica_streaming_app {
             ros::Publisher lpoints_pub_;
             tf2_ros::TransformBroadcaster br_;
             geometry_msgs::TransformStamped transformStamped_;
-	    leica_streaming_app::LeicaPoint lpoint_;
-	    leica_streaming_app::LeicaPointArray lpoints_;
+            leica_streaming_app::LeicaPoint lpoint_;
+            leica_streaming_app::LeicaPointArray lpoints_;
 
             bool publish_tf_;
+            bool inverse_tf_;
             std::string base_frame_;
             std::string point_frame_;
 

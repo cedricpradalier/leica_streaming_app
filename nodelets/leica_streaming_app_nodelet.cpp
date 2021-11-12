@@ -35,12 +35,18 @@ namespace leica_streaming_app {
         private_nh_.param<std::string>("comport", comport, "/dev/ttyUSB0");
         private_nh_.param<std::string>("ip", ip, "10.2.86.54");
         private_nh_.param("publish_tf", publish_tf_, true);
+        private_nh_.param("inverse_tf", inverse_tf_, false);
         private_nh_.param("port", port, 5001);
         private_nh_.param("base_frame", base_frame_, std::string("world"));
         private_nh_.param("point_frame", point_frame_, std::string("point"));
         transformStamped_.header.stamp = ros::Time::now();
-        transformStamped_.header.frame_id = base_frame_;
-        transformStamped_.child_frame_id = point_frame_;
+        if (inverse_tf_) {
+            transformStamped_.header.frame_id = point_frame_;
+            transformStamped_.child_frame_id = base_frame_;
+        } else {
+            transformStamped_.header.frame_id = base_frame_;
+            transformStamped_.child_frame_id = point_frame_;
+        }
         transformStamped_.transform.translation.x = 0;
         transformStamped_.transform.translation.y = 0;
         transformStamped_.transform.translation.z = 0;
@@ -52,17 +58,17 @@ namespace leica_streaming_app {
 
         if (connection == "serial") {
             SerialTSInterface * sts = new SerialTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
-                            this, std::placeholders::_1));
+                        this, std::placeholders::_1));
             sts->connect(comport);
             ts_.reset(sts);
         } else if (connection == "tcp") {
             TCPTSInterface *tts = new TCPTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
-                            this, std::placeholders::_1));
+                        this, std::placeholders::_1));
             tts->connect(ip, port);
             ts_.reset(tts);
         } else if (connection == "udp") {
             UDPTSInterface *tts = new UDPTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
-                            this, std::placeholders::_1));
+                        this, std::placeholders::_1));
             tts->connect(ip, port);
             ts_.reset(tts);
         } else {
@@ -118,26 +124,26 @@ namespace leica_streaming_app {
 
     void LeicaStreamingAppNodelet::locationTSCallback(const TSMessage & msg) {
 #if 0
-           std::cout << "Prism is at x: " << msg.x 
-           << " y: " << msg.y
-           << " z: " << msg.z << std::endl;
-           std::cout << std::endl;
+        std::cout << "Prism is at x: " << msg.x 
+            << " y: " << msg.y
+            << " z: " << msg.z << std::endl;
+        std::cout << std::endl;
 #endif
 
-	if (!lpoint_.point_id.empty() && (msg.point_id != lpoint_.point_id)) {
-		lpoints_.points.push_back(lpoint_);
-		lpoints_pub_.publish(lpoints_);
-	}
+        if (!lpoint_.point_id.empty() && (msg.point_id != lpoint_.point_id)) {
+            lpoints_.points.push_back(lpoint_);
+            lpoints_pub_.publish(lpoints_);
+        }
 
         lpoint_.header.stamp = ros::Time::now();
-	lpoint_.header.frame_id = base_frame_;
-	lpoint_.point_id = msg.point_id;
-	lpoint_.x = msg.x;
-	lpoint_.y = msg.y;
-	lpoint_.z = msg.z;
-	lpoint_.date = msg.date;
-	lpoint_.sensor_time = msg.sensor_time;
-	lpoint_pub_.publish(lpoint_);
+        lpoint_.header.frame_id = base_frame_;
+        lpoint_.point_id = msg.point_id;
+        lpoint_.x = msg.x;
+        lpoint_.y = msg.y;
+        lpoint_.z = msg.z;
+        lpoint_.date = msg.date;
+        lpoint_.sensor_time = msg.sensor_time;
+        lpoint_pub_.publish(lpoint_);
 
 
         geometry_msgs::PointStamped pmsg;
@@ -147,16 +153,21 @@ namespace leica_streaming_app {
         pmsg.point.y = msg.y;
         pmsg.point.z = msg.z;
 
-	
+
 
         prism_pos_pub_.publish(pmsg);
 
         if (publish_tf_) {
             transformStamped_.header.stamp = ros::Time::now();
-            transformStamped_.transform.translation.x = msg.x;
-            transformStamped_.transform.translation.y = msg.y;
-            transformStamped_.transform.translation.z = msg.z;
-
+            if (inverse_tf_) {
+                transformStamped_.transform.translation.x = -msg.x;
+                transformStamped_.transform.translation.y = -msg.y;
+                transformStamped_.transform.translation.z = -msg.z;
+            } else {
+                transformStamped_.transform.translation.x = msg.x;
+                transformStamped_.transform.translation.y = msg.y;
+                transformStamped_.transform.translation.z = msg.z;
+            }
             br_.sendTransform(transformStamped_);
         }
 
