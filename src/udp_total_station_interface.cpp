@@ -28,7 +28,7 @@ UDPTSInterface::~UDPTSInterface() {
 }
 
 void UDPTSInterface::recv_thread() {
-    ROS_INFO("%s: Listening on port %d",sensor_host.c_str(),sensor_port);
+    ROS_INFO("%s: UDP Listening on port %d",sensor_host.c_str(),sensor_port);
     udp::socket socket(io_service, udp::endpoint(udp::v4(), sensor_port));
     while (ros::ok()) {
         boost::array<uint8_t, 1024> recv_buf;
@@ -37,8 +37,13 @@ void UDPTSInterface::recv_thread() {
                 boost::asio::buffer(recv_buf), sender_endpoint);
         if (len>0) {
             std::string data(recv_buf.begin(),recv_buf.end());
-
-
+	    for (size_t i=0;i<data.size();i++) {
+		    if (data[i]=='\n') {
+			    data = data.substr(0,i);
+			    break;
+		    }
+	    }
+	    readHandler(data);
         } else {
             ros::Duration(0.001).sleep();
         }
@@ -68,7 +73,7 @@ void UDPTSInterface::write(std::vector<char> str) {
 void UDPTSInterface::readHandler(const std::string & data) {
 
     // Print received message
-    // std::cout << data << std::endl;
+    std::cout << data << std::endl;
 
     // Check for responses if the total station searches the prism
     if (searchingPrismFlag_) {

@@ -1,0 +1,11 @@
+<launch>
+
+  <node pkg="leica_streaming_app" type="leica_streaming_app_node" name="leica" output="screen">
+      <param name="connection" value="udp" />
+      <param name="base_frame" value="totalstation" />
+      <param name="point_frame" value="point_link" />
+      <param name="publish_tf" value="true" />
+      <param name="ip" value="192.168.254.3" />
+      <param name="port" value="5001" />
+  </node>
+</launch>
