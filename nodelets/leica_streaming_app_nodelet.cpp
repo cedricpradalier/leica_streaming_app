@@ -12,6 +12,7 @@
 #include "nav_msgs/Odometry.h"
 
 #include "leica_streaming_app/tcp_total_station_interface.h"
+#include "leica_streaming_app/udp_total_station_interface.h"
 #include "leica_streaming_app/serial_total_station_interface.h"
 #include "leica_streaming_app/leica_streaming_app_nodelet.h"
 
@@ -54,6 +55,11 @@ namespace leica_streaming_app {
             ts_.reset(sts);
         } else if (connection == "tcp") {
             TCPTSInterface *tts = new TCPTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
+                            this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+            tts->connect(ip, port);
+            ts_.reset(tts);
+        } else if (connection == "udp") {
+            UDPTSInterface *tts = new UDPTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
                             this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
             tts->connect(ip, port);
             ts_.reset(tts);

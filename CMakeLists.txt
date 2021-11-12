@@ -141,7 +141,7 @@ include_directories(
 #   src/${PROJECT_NAME}/leica_streaming_app_interface.cpp
 # )
 add_library(leica_streaming_receiver SHARED src/total_station_interface.cpp
-  src/serial_total_station_interface.cpp src/tcp_total_station_interface.cpp)
+  src/serial_total_station_interface.cpp src/tcp_total_station_interface.cpp src/udp_total_station_interface.cpp)
 target_link_libraries(leica_streaming_receiver ${Boost_LIBRARIES})
 
 add_library(${PROJECT_NAME}_nodelet nodelets/leica_streaming_app_nodelet.cpp)
