@@ -13,9 +13,20 @@
  */
 enum class TSState { off, on };
 
+struct TSMessage {
+	std::string point_id;
+	float x,y,z;
+	std::string date;
+	std::string sensor_time;
+
+	TSMessage() {}
+	TSMessage(const std::string & pid, float x, float y, float z, const std::string & date, const std::string & stime) :
+		point_id(pid),x(x),y(y),z(z),date(date),sensor_time(stime) {}
+};
+
 class TSInterface {
  public:
-  explicit TSInterface(std::function<void(const double, const double, const double)> locationCallback);
+  explicit TSInterface(std::function<void(const TSMessage &)> locationCallback);
 
   /**
    * @brief Sends the start command to the total station.
@@ -85,5 +96,5 @@ class TSInterface {
   bool externalPositionReceivedFlag_;                     /**< Flag indicating if a recent position was received externally */
   std::mutex externalPositionReceivedMutex_;              /**< Mutex for the corresponding flag */
 
-  std::function<void(const double, const double, const double)> locationCallback_; /**< Function pointer for the callback function */
+  std::function<void(const TSMessage &)> locationCallback_; /**< Function pointer for the callback function */
 };

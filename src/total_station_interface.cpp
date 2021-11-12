@@ -12,7 +12,7 @@
 
 #include "leica_streaming_app/total_station_interface.h"
 
-TSInterface::TSInterface(std::function<void(const double, const double, const double)> locationCallback)
+TSInterface::TSInterface(std::function<void(const TSMessage &)> locationCallback)
   : io_context_(new boost::asio::io_service()),
     timer_(*io_context_, boost::posix_time::seconds(2)),
     timerStartedFlag_(false),

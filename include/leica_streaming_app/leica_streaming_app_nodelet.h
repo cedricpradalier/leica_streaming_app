@@ -10,6 +10,8 @@
 #include "tf2_ros/transform_broadcaster.h"
 
 #include "leica_streaming_app/total_station_interface.h"
+#include "leica_streaming_app/LeicaPoint.h"
+#include "leica_streaming_app/LeicaPointArray.h"
 
 namespace leica_streaming_app {
 
@@ -24,15 +26,19 @@ namespace leica_streaming_app {
             void disconnectCb();
             void positionCb(const nav_msgs::Odometry::ConstPtr& msg);
             bool startStopCb(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response & res);
-            void locationTSCallback(double x, double y, double z);
+            void locationTSCallback(const TSMessage &);
 
             ros::NodeHandle nh_;
             ros::NodeHandle private_nh_;
             ros::Subscriber pos_sub_;
             ros::ServiceServer start_stop_srv_;
             ros::Publisher prism_pos_pub_;
+            ros::Publisher lpoint_pub_;
+            ros::Publisher lpoints_pub_;
             tf2_ros::TransformBroadcaster br_;
             geometry_msgs::TransformStamped transformStamped_;
+	    leica_streaming_app::LeicaPoint lpoint_;
+	    leica_streaming_app::LeicaPointArray lpoints_;
 
             bool publish_tf_;
             std::string base_frame_;

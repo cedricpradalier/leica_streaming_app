@@ -26,7 +26,7 @@ class UDPTSInterface: public TSInterface {
    *
    * @param f Callback function to receive the x, y and z location of the tracked prism.
    */
-  explicit UDPTSInterface(std::function<void(const double, const double, const double)> locationCallback);
+  explicit UDPTSInterface(std::function<void(const TSMessage &)> locationCallback);
 
   /**
    * @brief Close socket and join io_context thread.

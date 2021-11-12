@@ -20,7 +20,7 @@
 using boost::asio::ip::udp;
 boost::asio::io_service UDPTSInterface::io_service;
 
-UDPTSInterface::UDPTSInterface(std::function<void(const double, const double, const double)> locationCallback)
+UDPTSInterface::UDPTSInterface(std::function<void(const TSMessage &)> locationCallback)
   : TSInterface(locationCallback), receiveThread(NULL) {}
 
 UDPTSInterface::~UDPTSInterface() {
@@ -38,7 +38,7 @@ void UDPTSInterface::recv_thread() {
         if (len>0) {
             std::string data(recv_buf.begin(),recv_buf.end());
 	    for (size_t i=0;i<data.size();i++) {
-		    if (data[i]=='\n') {
+		    if ((data[i]=='\r') || (data[i]=='\n')) {
 			    data = data.substr(0,i);
 			    break;
 		    }
@@ -97,16 +97,21 @@ void UDPTSInterface::readHandler(const std::string & data) {
                 }
             }
         }
-    } else if (data[0] == 'T') { // Forward x, y and z coordinate if location was received
+    } else { // Forward x, y and z coordinate if location was received
         // Split the received message to access the coordinates
         std::vector<std::string> results;
         boost::split(results, data, [](char c){return c == ',';});
+	if (results.size() >= 6) {
 
-        double x = std::stod(results[1]);
-        double y = std::stod(results[2]);
-        double z = std::stod(results[3]);
+		double x = std::stod(results[1]);
+		double y = std::stod(results[2]);
+		double z = std::stod(results[3]);
 
-        locationCallback_(x, y, z);
+		TSMessage msg(results[0],x,y,z,results[4],results[5]);
+		locationCallback_(msg);
+	} else {
+		ROS_WARN("Could not split input stream into 6 fields");
+	}
 
     }
 

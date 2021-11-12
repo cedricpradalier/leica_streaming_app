@@ -15,6 +15,8 @@
 #include "leica_streaming_app/udp_total_station_interface.h"
 #include "leica_streaming_app/serial_total_station_interface.h"
 #include "leica_streaming_app/leica_streaming_app_nodelet.h"
+#include "leica_streaming_app/LeicaPoint.h"
+#include "leica_streaming_app/LeicaPointArray.h"
 
 namespace leica_streaming_app {
 
@@ -50,23 +52,25 @@ namespace leica_streaming_app {
 
         if (connection == "serial") {
             SerialTSInterface * sts = new SerialTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
-                            this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                            this, std::placeholders::_1));
             sts->connect(comport);
             ts_.reset(sts);
         } else if (connection == "tcp") {
             TCPTSInterface *tts = new TCPTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
-                            this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                            this, std::placeholders::_1));
             tts->connect(ip, port);
             ts_.reset(tts);
         } else if (connection == "udp") {
             UDPTSInterface *tts = new UDPTSInterface(std::bind(&LeicaStreamingAppNodelet::locationTSCallback,
-                            this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                            this, std::placeholders::_1));
             tts->connect(ip, port);
             ts_.reset(tts);
         } else {
             ROS_ERROR("Connection type '%s' is not recognized. Valid options are 'serial' or 'tcp'.",connection.c_str());
         }
 
+        lpoint_pub_ = private_nh_.advertise<leica_streaming_app::LeicaPoint>("leica_point", 1);
+        lpoints_pub_ = private_nh_.advertise<leica_streaming_app::LeicaPointArray>("leica_stored_points", 1, true);
         prism_pos_pub_ = private_nh_.advertise<geometry_msgs::PointStamped>("position", 1,
                 boost::bind(&LeicaStreamingAppNodelet::connectCb, this),
                 boost::bind(&LeicaStreamingAppNodelet::disconnectCb, this));
@@ -112,29 +116,46 @@ namespace leica_streaming_app {
         return true;
     }
 
-    void LeicaStreamingAppNodelet::locationTSCallback(const double x,
-            const double y,
-            const double z) {
-        /*
-           std::cout << "Prism is at x: " << x 
-           << " y: " << y
-           << " z: " << z << std::endl;
+    void LeicaStreamingAppNodelet::locationTSCallback(const TSMessage & msg) {
+#if 0
+           std::cout << "Prism is at x: " << msg.x 
+           << " y: " << msg.y
+           << " z: " << msg.z << std::endl;
            std::cout << std::endl;
-           */
-        geometry_msgs::PointStamped msg;
-        msg.header.stamp = ros::Time::now();
-        msg.header.frame_id = base_frame_;
-        msg.point.x = x;
-        msg.point.y = y;
-        msg.point.z = z;
+#endif
 
-        prism_pos_pub_.publish(msg);
+	if (!lpoint_.point_id.empty() && (msg.point_id != lpoint_.point_id)) {
+		lpoints_.points.push_back(lpoint_);
+		lpoints_pub_.publish(lpoints_);
+	}
+
+        lpoint_.header.stamp = ros::Time::now();
+	lpoint_.header.frame_id = base_frame_;
+	lpoint_.point_id = msg.point_id;
+	lpoint_.x = msg.x;
+	lpoint_.y = msg.y;
+	lpoint_.z = msg.z;
+	lpoint_.date = msg.date;
+	lpoint_.sensor_time = msg.sensor_time;
+	lpoint_pub_.publish(lpoint_);
+
+
+        geometry_msgs::PointStamped pmsg;
+        pmsg.header.stamp = ros::Time::now();
+        pmsg.header.frame_id = base_frame_;
+        pmsg.point.x = msg.x;
+        pmsg.point.y = msg.y;
+        pmsg.point.z = msg.z;
+
+	
+
+        prism_pos_pub_.publish(pmsg);
 
         if (publish_tf_) {
             transformStamped_.header.stamp = ros::Time::now();
-            transformStamped_.transform.translation.x = x;
-            transformStamped_.transform.translation.y = y;
-            transformStamped_.transform.translation.z = z;
+            transformStamped_.transform.translation.x = msg.x;
+            transformStamped_.transform.translation.y = msg.y;
+            transformStamped_.transform.translation.z = msg.z;
 
             br_.sendTransform(transformStamped_);
         }
