@@ -44,13 +44,13 @@ void SerialTSInterface::connect(std::string comport) {
 		// how many stop bits are used (default is one)
 		boost::asio::serial_port_base::stop_bits STOP(boost::asio::serial_port_base::stop_bits::one);
 
+		serial_port_.open(comport, ec);
 		serial_port_.set_option(BAUD);
 		serial_port_.set_option(C_SIZE);
 		serial_port_.set_option(FLOW);
 		serial_port_.set_option(PARITY);
 		serial_port_.set_option(STOP);
 
-		serial_port_.open(comport, ec);
 
 		if (!ec) {
 			startReader();
