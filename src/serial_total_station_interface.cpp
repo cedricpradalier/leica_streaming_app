@@ -34,7 +34,7 @@ void SerialTSInterface::connect(std::string comport) {
 		boost::system::error_code ec;
 
 		// what baud rate do we communicate at
-		boost::asio::serial_port_base::baud_rate BAUD(151200);
+		boost::asio::serial_port_base::baud_rate BAUD(115200);
 		// how big is each "packet" of data (default is 8 bits)
 		boost::asio::serial_port_base::character_size C_SIZE(8);
 		// what flow control is used (default is none)
