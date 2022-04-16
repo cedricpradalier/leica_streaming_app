@@ -103,8 +103,8 @@ void UDPTSInterface::readHandler(const std::string & data) {
         boost::split(results, data, [](char c){return c == ',';});
 	if (results.size() >= 6) {
 
-		double x = std::stod(results[1]);
-		double y = std::stod(results[2]);
+		double y = std::stod(results[1]);
+		double x = std::stod(results[2]);
 		double z = std::stod(results[3]);
 
 		TSMessage msg(results[0],x,y,z,results[4],results[5]);
