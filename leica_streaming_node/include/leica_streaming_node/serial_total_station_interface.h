@@ -28,7 +28,7 @@ class SerialTSInterface: public TSInterface {
    *
    * @param f Callback function to receive the x, y and z location of the tracked prism.
    */
-  explicit SerialTSInterface(std::function<void(const TSMessage &)> locationCallback);
+  explicit SerialTSInterface(rclcpp::Node * node, std::function<void(const TSMessage &)> locationCallback);
 
   /**
    * @brief Close socket and join io_context thread.
@@ -78,11 +78,6 @@ class SerialTSInterface: public TSInterface {
    */
   void readHandler(const boost::system::error_code& ec,
                    std::size_t bytes_transferred);
-
-  /**
-   * @brief Starts the prism search on the total station.
-   */
-  void searchPrism(void);
 
   boost::asio::serial_port serial_port_;                  /**< Serial port */
 

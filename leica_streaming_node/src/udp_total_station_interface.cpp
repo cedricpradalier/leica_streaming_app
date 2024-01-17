@@ -13,39 +13,43 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "leica_streaming_app/udp_total_station_interface.h"
+#include "leica_streaming_node/udp_total_station_interface.h"
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 using boost::asio::ip::udp;
 boost::asio::io_service UDPTSInterface::io_service;
 
-UDPTSInterface::UDPTSInterface(std::function<void(const TSMessage &)> locationCallback)
-  : TSInterface(locationCallback), receiveThread(NULL) {}
+UDPTSInterface::UDPTSInterface(rclcpp::Node * node, std::function<void(const TSMessage &)> locationCallback)
+  : TSInterface(node,locationCallback), receiveThread(NULL), terminate(false) {}
 
 UDPTSInterface::~UDPTSInterface() {
-    delete receiveThread;
+    if (receiveThread) {
+        terminate = true;
+        receiveThread->join();
+        delete receiveThread;
+    }
 }
 
 void UDPTSInterface::recv_thread() {
-    ROS_INFO("%s: UDP Listening on port %d",sensor_host.c_str(),sensor_port);
+    RCLCPP_INFO(node_->get_logger(),"%s: UDP Listening on port %d",sensor_host.c_str(),sensor_port);
     udp::socket socket(io_service, udp::endpoint(udp::v4(), sensor_port));
-    while (ros::ok()) {
+    while (!terminate) {
         boost::array<uint8_t, 1024> recv_buf;
         udp::endpoint sender_endpoint;
         int len = socket.receive_from(
                 boost::asio::buffer(recv_buf), sender_endpoint);
         if (len>0) {
             std::string data(recv_buf.begin(),recv_buf.end());
-	    for (size_t i=0;i<data.size();i++) {
-		    if ((data[i]=='\r') || (data[i]=='\n')) {
-			    data = data.substr(0,i);
-			    break;
-		    }
-	    }
-	    readHandler(data);
+            for (size_t i=0;i<data.size();i++) {
+                if ((data[i]=='\r') || (data[i]=='\n')) {
+                    data = data.substr(0,i);
+                    break;
+                }
+            }
+            readHandler(data);
         } else {
-            ros::Duration(0.001).sleep();
+            usleep(1000);
         }
     }
 }
@@ -79,14 +83,12 @@ void UDPTSInterface::readHandler(const std::string & data) {
     if (searchingPrismFlag_) {
         // Catch the response
         if (data.find("%R8P,0,0:") != std::string::npos) {
-            std::cout << "Got an answer." << std::endl;
-
             // Catch the negative response
             if (data.find(":31") != std::string::npos) {
-                std::cout << "Prism not found!" << std::endl;
+                RCLCPP_WARN(node_->get_logger(),"Prism not found!");
                 searchPrism();
             } else if (data.find(":0") != std::string::npos) { // Catch the positive response
-                std::cout << "Prism found" << std::endl;
+                RCLCPP_INFO(node_->get_logger(),"Prism found");
                 {
                     std::lock_guard<std::mutex> guard(searchingPrismMutex_);
                     searchingPrismFlag_ = false;
@@ -98,20 +100,20 @@ void UDPTSInterface::readHandler(const std::string & data) {
             }
         }
     } else { // Forward x, y and z coordinate if location was received
-        // Split the received message to access the coordinates
+             // Split the received message to access the coordinates
         std::vector<std::string> results;
         boost::split(results, data, [](char c){return c == ',';});
-	if (results.size() >= 6) {
+        if (results.size() >= 6) {
 
-		double y = std::stod(results[1]);
-		double x = std::stod(results[2]);
-		double z = std::stod(results[3]);
+            double y = std::stod(results[1]);
+            double x = std::stod(results[2]);
+            double z = std::stod(results[3]);
 
-		TSMessage msg(results[0],x,y,z,results[4],results[5]);
-		locationCallback_(msg);
-	} else {
-		ROS_WARN("Could not split input stream into 6 fields");
-	}
+            TSMessage msg(results[0],x,y,z,results[4],results[5]);
+            locationCallback_(msg);
+        } else {
+            RCLCPP_WARN(node_->get_logger(),"Could not split input stream into 6 fields");
+        }
 
     }
 

@@ -11,33 +11,48 @@
 #include <vector>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/asio/serial_port_base.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "leica_streaming_app/tcp_total_station_interface.h"
-#include <ros/ros.h>
+#include "leica_streaming_node/serial_total_station_interface.h"
 
-TCPTSInterface::TCPTSInterface(std::function<void(const TSMessage &)> locationCallback)
-	: socket_(new boost::asio::ip::tcp::socket(*io_context_)),
-	TSInterface(locationCallback) {}
+SerialTSInterface::SerialTSInterface(rclcpp::Node * node, std::function<void(const TSMessage &)> locationCallback)
+	: TSInterface(node,locationCallback), serial_port_(*io_context_) {}
 
-	TCPTSInterface::~TCPTSInterface() {
-		socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-		socket_->close();
+	SerialTSInterface::~SerialTSInterface() {
+		serial_port_.cancel();
+		serial_port_.close();
 		contextThread_.join();
 	}
 
-void TCPTSInterface::connect(std::string ip, int port) {
-	boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip),
-			port);
+void SerialTSInterface::connect(std::string comport) {
 	try {
 		// Connect to total station and call startReader and startTimer
 		// if successfull
-		socket_->async_connect(endpoint,
-				[this](const boost::system::error_code& ec) {
-				if (!ec) {
-				startReader();
-				}
-				});
+		boost::system::error_code ec;
+
+		// what baud rate do we communicate at
+		boost::asio::serial_port_base::baud_rate BAUD(115200);
+		// how big is each "packet" of data (default is 8 bits)
+		boost::asio::serial_port_base::character_size C_SIZE(8);
+		// what flow control is used (default is none)
+		boost::asio::serial_port_base::flow_control FLOW(boost::asio::serial_port_base::flow_control::none);
+		// what parity is used (default is none)
+		boost::asio::serial_port_base::parity PARITY(boost::asio::serial_port_base::parity::none);
+		// how many stop bits are used (default is one)
+		boost::asio::serial_port_base::stop_bits STOP(boost::asio::serial_port_base::stop_bits::one);
+
+		serial_port_.open(comport, ec);
+		serial_port_.set_option(BAUD);
+		serial_port_.set_option(C_SIZE);
+		serial_port_.set_option(FLOW);
+		serial_port_.set_option(PARITY);
+		serial_port_.set_option(STOP);
+
+
+		if (!ec) {
+			startReader();
+		}
 
 		// Start io_context in separate thread
 		contextThread_ = std::thread([this](){ io_context_->run(); });
@@ -46,35 +61,35 @@ void TCPTSInterface::connect(std::string ip, int port) {
 	}
 }
 
-void TCPTSInterface::startReader() {
-	boost::asio::async_read_until(*socket_,
+void SerialTSInterface::startReader() {
+	boost::asio::async_read_until(serial_port_,
 			readData_,
 			"\r\n",
-			std::bind(&TCPTSInterface::readHandler,
+			std::bind(&SerialTSInterface::readHandler,
 				this,
 				std::placeholders::_1,
 				std::placeholders::_2)
 			);
 }
 
-void TCPTSInterface::write(std::vector<char> command) {
-	boost::asio::async_write(*socket_,
+void SerialTSInterface::write(std::vector<char> command) {
+	boost::asio::async_write(serial_port_,
 			boost::asio::buffer(command),
-			std::bind(&TCPTSInterface::writeHandler,
+			std::bind(&SerialTSInterface::writeHandler,
 				this,
 				std::placeholders::_1,
 				std::placeholders::_2)
 			);
 }
 
-void TCPTSInterface::writeHandler(const boost::system::error_code& ec,
+void SerialTSInterface::writeHandler(const boost::system::error_code& ec,
 		std::size_t bytes_transferred) {
 	if (!ec) {
-		std::cout << "Command sent." << std::endl;
+		std::cout << "Command sent:" << bytes_transferred << " bytes."  << std::endl;
 	}
 }
 
-void TCPTSInterface::readHandler(const boost::system::error_code& ec,
+void SerialTSInterface::readHandler(const boost::system::error_code& ec,
 		std::size_t bytes_transferred) {
 	if (!ec) {
 		// Convert streambuf to std::string
@@ -113,7 +128,6 @@ void TCPTSInterface::readHandler(const boost::system::error_code& ec,
 			// Split the received message to access the coordinates
 			std::vector<std::string> results;
 			boost::split(results, data, [](char c){return c == ',';});
-
 			if (results.size() >= 6) {
 
 				double x = std::stod(results[1]);
@@ -123,7 +137,7 @@ void TCPTSInterface::readHandler(const boost::system::error_code& ec,
 				TSMessage msg(results[0],x,y,z,results[4],results[5]);
 				locationCallback_(msg);
 			} else {
-				ROS_WARN("Could not split input stream into 6 fields");
+				RCLCPP_WARN(node_->get_logger(),"Could not split input stream into 6 fields");
 			}
 
 			// Indicate that a message was received
@@ -138,10 +152,10 @@ void TCPTSInterface::readHandler(const boost::system::error_code& ec,
 		}
 
 		// Restart reading
-		boost::asio::async_read_until(*socket_,
+		boost::asio::async_read_until(serial_port_,
 				readData_,
 				"\r\n",
-				std::bind(&TCPTSInterface::readHandler,
+				std::bind(&SerialTSInterface::readHandler,
 					this,
 					std::placeholders::_1,
 					std::placeholders::_2)

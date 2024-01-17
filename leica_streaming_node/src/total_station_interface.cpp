@@ -10,16 +10,18 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "leica_streaming_app/total_station_interface.h"
+#include "leica_streaming_node/total_station_interface.h"
 
-TSInterface::TSInterface(std::function<void(const TSMessage &)> locationCallback)
-  : io_context_(new boost::asio::io_service()),
-    timer_(*io_context_, boost::posix_time::seconds(2)),
+TSInterface::TSInterface(rclcpp::Node * node, std::function<void(const TSMessage &)> locationCallback)
+  : tsState_(TSState::on),
+    prismPosition_(3),
+    io_context_(new boost::asio::io_service()),
     timerStartedFlag_(false),
+    timer_(*io_context_, boost::posix_time::seconds(2)),
+    messagesReceivedFlag_(false),
     searchingPrismFlag_(false),
     externalPositionReceivedFlag_(false),
-    prismPosition_(3),
-    tsState_(TSState::on),
+    node_(node),
     locationCallback_(locationCallback)
 {}
 
@@ -61,7 +63,7 @@ void TSInterface::timerHandler() {
 
         // Start to search the prism if no message was received
         if (!messagesReceivedFlag_ && !searchingPrismFlag_) {
-          std::cout << "Prism lost!" << std::endl;
+          RCLCPP_WARN(node_->get_logger(),"Prism lost!");
 
           // Turn total station to prism if a recent external position was received
           {
@@ -103,7 +105,7 @@ void TSInterface::searchPrism(void) {
   std::vector<char> command {'%', 'R', '8', 'Q', ',', '6', ':', '1', 0x0d/*CR*/, 0x0a/*LF*/};
   write(command);
 
-  std::cout << "Search prism" << std::endl;
+  RCLCPP_INFO(node_->get_logger(),"Search prism");
 }
 
 void TSInterface::turnTelescope(void) {

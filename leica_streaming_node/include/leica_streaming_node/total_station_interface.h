@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <boost/asio.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 /**
  * @brief Possible states of the total station.
@@ -26,7 +27,7 @@ struct TSMessage {
 
 class TSInterface {
  public:
-  explicit TSInterface(std::function<void(const TSMessage &)> locationCallback);
+  explicit TSInterface(rclcpp::Node * node, std::function<void(const TSMessage &)> locationCallback);
 
   /**
    * @brief Sends the start command to the total station.
@@ -96,5 +97,6 @@ class TSInterface {
   bool externalPositionReceivedFlag_;                     /**< Flag indicating if a recent position was received externally */
   std::mutex externalPositionReceivedMutex_;              /**< Mutex for the corresponding flag */
 
+  rclcpp::Node * node_;
   std::function<void(const TSMessage &)> locationCallback_; /**< Function pointer for the callback function */
 };
