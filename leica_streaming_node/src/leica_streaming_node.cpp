@@ -45,6 +45,9 @@ namespace leica_streaming_node {
         base_frame_ = this->get_parameter("~/base_frame").as_string();
         point_frame_ = this->get_parameter("~/point_frame").as_string();
         rclcpp::Time now = this->get_clock()->now();
+
+
+	tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
         transformStamped_.header.stamp = now;
         if (inverse_tf_) {
             transformStamped_.header.frame_id = point_frame_;
@@ -63,16 +66,19 @@ namespace leica_streaming_node {
         transformStamped_.transform.rotation.w = 1;
 
         if (connection == "serial") {
+		RCLCPP_INFO(this->get_logger(),"Starting serial connection");
             SerialTSInterface * sts = new SerialTSInterface(this,std::bind(&LeicaStreamingNode::locationTSCallback,
                         this, std::placeholders::_1));
             sts->connect(comport);
             ts_.reset(sts);
         } else if (connection == "tcp") {
+		RCLCPP_INFO(this->get_logger(),"Starting tcp connection");
             TCPTSInterface *tts = new TCPTSInterface(this,std::bind(&LeicaStreamingNode::locationTSCallback,
                         this, std::placeholders::_1));
             tts->connect(ip, port);
             ts_.reset(tts);
         } else if (connection == "udp") {
+		RCLCPP_INFO(this->get_logger(),"Starting udp connection");
             UDPTSInterface *tts = new UDPTSInterface(this,std::bind(&LeicaStreamingNode::locationTSCallback,
                         this, std::placeholders::_1));
             tts->connect(ip, port);

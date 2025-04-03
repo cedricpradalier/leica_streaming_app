@@ -32,7 +32,7 @@ UDPTSInterface::~UDPTSInterface() {
 }
 
 void UDPTSInterface::recv_thread() {
-    RCLCPP_INFO(node_->get_logger(),"%s: UDP Listening on port %d",sensor_host.c_str(),sensor_port);
+    RCLCPP_INFO(node_->get_logger(),"%s: Thread Listening on port %d",sensor_host.c_str(),sensor_port);
     udp::socket socket(io_service, udp::endpoint(udp::v4(), sensor_port));
     while (!terminate) {
         boost::array<uint8_t, 1024> recv_buf;
@@ -58,6 +58,7 @@ void UDPTSInterface::recv_thread() {
 void UDPTSInterface::connect(std::string ip, int port) {
     sensor_host = ip;
     sensor_port = port;
+    RCLCPP_INFO(node_->get_logger(),"%s: UDP Listening on port %d",sensor_host.c_str(),sensor_port);
 
     receiveThread = new std::thread(&UDPTSInterface::recv_thread,this);
 

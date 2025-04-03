@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(leica_streaming_node)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -g -ggdb)
 endif()
 
 # find dependencies
@@ -28,7 +28,7 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 
-add_library(leica_streaming_receiver SHARED src/total_station_interface.cpp
+add_library(leica_streaming_receiver STATIC src/total_station_interface.cpp
       src/serial_total_station_interface.cpp
       src/tcp_total_station_interface.cpp src/udp_total_station_interface.cpp)
 target_include_directories(leica_streaming_receiver PUBLIC
@@ -67,6 +67,12 @@ target_link_libraries(leica_streaming_node leica_streaming_receiver)
 
 install(TARGETS leica_streaming_node
   DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

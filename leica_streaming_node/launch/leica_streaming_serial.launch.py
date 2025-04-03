@@ -44,13 +44,13 @@ def generate_launch_description():
         launch_ros.actions.Node(
             package='leica_streaming_node', executable='leica_streaming_node', name='leica_streaming',
             parameters=[
-                {"connection": "serial"},
-                {"base_frame": "totalstation"},
-                {"point_frame": "point_link"},
-                {"publish_tf": True},
-                {"inverse_tf": False},
-                {"comport": "/dev/ttyUSB0"},
-                ],
+                {"~/connection": "serial"},
+                {"~/base_frame": "totalstation"},
+                {"~/point_frame": "point_link"},
+                {"~/publish_tf": True},
+                {"~/inverse_tf": False},
+                {"~/comport": "/dev/ttyUSB0"},
+                ],~/
             output='screen'),
 
     ])

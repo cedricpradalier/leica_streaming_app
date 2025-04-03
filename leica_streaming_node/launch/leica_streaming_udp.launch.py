@@ -44,13 +44,13 @@ def generate_launch_description():
         launch_ros.actions.Node(
             package='leica_streaming_node', executable='leica_streaming_node', name='leica_streaming',
             parameters=[
-                {"connection": "udp"},
-                {"base_frame": "totalstation"},
-                {"point_frame": "point_link"},
-                {"publish_tf": True},
-                {"inverse_tf": False},
-                {"ip": "192.168.254.1"},
-                {"port": 5001},
+                {"~/connection": "udp"},
+                {"~/base_frame": "totalstation"},
+                {"~/point_frame": "base_link"},
+                {"~/publish_tf": True},
+                {"~/inverse_tf": True},
+                {"~/ip": "192.168.254.3"},
+                {"~/port": 5001},
                 ],
             output='screen'),
 
